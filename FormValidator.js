@@ -132,7 +132,6 @@ var FormValidator = (function () {
 
     Validator.prototype = {
         // TODO 为每个表单元素添加事件侦听
-        // TODO 性能优化，
         addFormEvents: function (cfg) {
             var me = this;
             var elem, formType, item;
