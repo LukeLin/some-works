@@ -157,24 +157,36 @@ var FormValidator = (function () {
                     cb : [cb]
             );
         },
-        emit: function(type){
+        emit: function(type, args){
             if(!this.callbackLists[type]) {
                 throw new Error('no matched event type');
             }
 
             var list = this.callbackLists[type];
 
+            if(type === 'failure' && args && args[0] && args[0].preventDefault) {
+                args[0].preventDefault();
+            }
+
             for(var i = 0, len = list.length; i < len; i++) {
-                if(typeof list[i] === 'function' && list[i].call(this.form) === false)
+                if(typeof list[i] === 'function' && list[i].apply(this.form, args) === false)
                     break;
             }
         },
+        isDefaultPrevented: false,
         submit: function () {
             var me = this;
 
             if (!this.form) return;
 
             $(this.form).on('submit', function (e) {
+                me.isDefaultPrevented = false;
+                e._preventDefault = e.preventDefault;
+                e.preventDefault = function(){
+                    e._preventDefault();
+                    me.isDefaultPrevented = true;
+                };
+
                 // 解析配置，parsed为false时，可再次解析
                 if (!me.parsed) {
                     me.parseConfig();
@@ -186,17 +198,17 @@ var FormValidator = (function () {
 
                 // 验证有错误
                 if (me.hasErrors()) {
-                    e.preventDefault();
                     me.handleError();
 
-                    me.emit('failure');
+                    me.emit('failure', [e]);
                 } else {
                     // ajax提交默认阻止表单提交
                     if (me.ajax) {
-                        e.preventDefault();
+                        e._preventDefault();
                     }
 
                     var def;
+                    var form = this;
 
                     /*
                     执行me.beforeSend方法，在成功，提交之前执行，
@@ -207,27 +219,26 @@ var FormValidator = (function () {
                         K.handyWarn({
                             msg: me.beforeSend.errorMsg
                         });
-                        if(!e.isDefaultPrevented()) e.preventDefault();
-                        me.emit('failure');
+
+                        me.emit('failure', [e]);
                         return;
                     }
 
                     // 如果是deferred对象，序列执行回调
                     if (def && (def = (def.pipe || def.then))) {
-                        var form = this;
-
-                        // 因为是异步操作，必须阻止默认表单提交
-                        if(!e.isDefaultPrevented()) e.preventDefault();
+                        // 因为是异步操作，必须阻止默认表单提交，与异步提交表单不同
+                        if(!e.isDefaultPrevented()) e._preventDefault();
 
                         return def(function () {
-                            me.emit('success');
+                            me.isDefaultPrevented = false;
+                            me.emit('success', [e]);
                             // 提交表单
-                            form.submit();
+                            if(!me.isDefaultPrevented && !me.ajax) form.submit();
                         }, function(){
-                            me.emit('failure');
+                            me.emit('failure', [e]);
                         });
                     } else {
-                        me.emit('success');
+                        me.emit('success', [e]);
                     }
                 }
             });
@@ -256,7 +267,7 @@ var FormValidator = (function () {
         },
         // 解析HTML标签中的“data-valid”属性，将有的保存
         parseConfig: function () {
-            var elems = $('*[data-valid]', this.form);
+            var elems = $('*[data-valid]:not([disabled]):not([readonly])', this.form);
             var elem, ruler;
 
             for (var i = 0, len = elems.length; i < len; i++) {
@@ -326,10 +337,9 @@ var FormValidator = (function () {
     }
 
     function parseEachEleCfg(item){
-        var type, description, checker;
-
         if (!(item.checker && item.checker.length)) {
-            var types = item.type && item.type.split(r_space);
+            var type, description, checker;
+            var types = item.type && item.type.split(r_space) || [];
 
             if (!types.length) return false;
 
@@ -337,8 +347,8 @@ var FormValidator = (function () {
             // “charLen:24”， “：”后面跟随描述语，
             // 描述语用在错误信息中
             item.checker = [];
-            for (var j = 0, len2 = types.length; j < len2; j++) {
-                type = types[j].split(':');
+            for (var i = 0, len = types.length; i < len; i++) {
+                type = types[i].split(':');
                 description = type[1];
                 checker = VALIDTYPES[type[0]];
 
