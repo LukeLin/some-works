@@ -104,6 +104,7 @@ var FormValidator = (function () {
         if (formInstance.types) $.extend(VALIDTYPES, formInstance.types);
 
         this.parsed = false;
+        this.isDefaultPrevented = false;
         this.ajax = typeof formInstance.ajax === 'boolean' ?
             formInstance.ajax : true;
 
@@ -172,7 +173,6 @@ var FormValidator = (function () {
                     break;
             }
         },
-        isDefaultPrevented: false,
         submit: function () {
             var me = this;
 
