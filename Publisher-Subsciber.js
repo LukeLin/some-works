@@ -1,4 +1,4 @@
-var PubSub = function(){
+        var PubSub = function(){
             this.subscribers = {};
         };
 
