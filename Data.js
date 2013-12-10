@@ -1,4 +1,3 @@
-
 define(function(){
 
     function isEmptyObject(obj){
@@ -11,7 +10,7 @@ define(function(){
         return true;
     }
 
-	var Data = function(){
+    var Data = function(){
         this.expando = ('myData' + Math.random() + (new Date()).getTime()).replace(/\D/g, '');
     };
 
