@@ -1,4 +1,4 @@
-var r_DATE_FORMATTER = /(y+|M+|d+|h+|m+|s+)/g;
+var r_DATE_FORMATTER = /y+|M+|d+|h+|m+|s+/g;
 
     /**
      *
