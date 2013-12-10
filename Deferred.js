@@ -151,3 +151,109 @@ define(function(){
         when: when
     };
 });
+
+
+
+// test:
+require([
+        //'callbacks',
+        'deferred',
+        //'jquery'
+    ], function (/*Callbacks, */Deferred/*, $*/) {
+        var start, end;
+        start = (new Date()).getTime();
+        var a = Deferred.create();
+        a.done(function () {
+            console.log('done!');
+            console.log(this);
+        })
+                .fail(function () {
+                    console.log('failed');
+                })
+                .always(function () {
+                    console.log('always');
+                })
+                .then(function () {
+                    console.log(arguments);
+                    console.log('then done');
+                }, function () {
+                    console.log('then failed');
+                })
+                .then(function () {
+                    var def = Deferred.create();
+                    def.then(function () {
+                        console.log('a returned def done');
+                    }, function () {
+                        console.log('a returned def failed');
+                    });
+
+                    setTimeout(function () {
+                        def.resolve();
+                    }, 511);
+                    return def;
+                }, function () {
+                    var def = Deferred.create();
+                    def.then(function () {
+                        console.log('a returned def done');
+                    }, function () {
+                        console.log('a returned def failed');
+                    });
+
+                    setTimeout(function () {
+                        def.reject();
+                    }, 511);
+                    return def;
+                });
+        end = (new Date()).getTime();
+        console.log(end - start + 'ms');
+
+        var b = Deferred.create();
+        b.done(function () {
+            console.log('b done');
+        })
+                .fail(function () {
+                    console.log('b failed');
+                })
+                .then(function () {
+                    console.log('b then done');
+                }, function () {
+                    console.log('b then failed');
+                })
+                .then(function () {
+                    var def = new Deferred();
+                    def.then(function () {
+                        console.log('b returned def done');
+                    }, function () {
+                        console.log('b returned def failed');
+                    });
+
+                    setTimeout(function () {
+                        def.resolve();
+                    }, 511);
+                    return def;
+                }, function () {
+                    var def = Deferred.create();
+                    def.then(function () {
+                        console.log('b returned def done');
+                    }, function () {
+                        console.log('b returned def failed');
+                    });
+
+                    setTimeout(function () {
+                        def.reject();
+                    }, 511);
+                    return def;
+                });
+
+        setTimeout(function () {
+            a.resolve({
+                data: 123
+            });
+            console.log(a);
+        });
+
+        setTimeout(function () {
+            b.reject();
+            console.log(b);
+        });
+    });
