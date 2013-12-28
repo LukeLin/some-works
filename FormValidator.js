@@ -6,9 +6,9 @@
 /**
  * 验证器
  * @param {Object} formInstance
- * @constructor FormValidator
+ * @constructor Validator
  */
-var FormValidator = (function () {
+S.c.TeamValidator = (function () {
     var r_space = /\s+/;
 
     // HTML转义
@@ -37,7 +37,7 @@ var FormValidator = (function () {
         },
         'phone': {
             validate: function (value) {
-                return (/^1[3|4|5|8]\d{9}$/.test(value));
+                return (/^1[3458]\d{9}$/.test(value));
             },
             msg: function(value){
                 return (value ? '请输入正确格式的手机号码' : '请输入你的手机号码');
@@ -82,12 +82,12 @@ var FormValidator = (function () {
 
         this.form = form;
 
-        /*
+        /**
          [{
-         elem:elem,
-         value: '',
-         type: ''
-         [optional] ,checker: {fn: func, description: ''}
+            elem:elem,
+            value: '',
+            type: ''
+            [optional] ,checker: {checker: func, description: ''}
          }, ..]
          */
         this.config = [];
@@ -112,7 +112,7 @@ var FormValidator = (function () {
         if(formInstance.failure) this.on('failure', formInstance.failure);
         if(formInstance.beforeSend) this.beforeSend = formInstance.beforeSend;
 
-        if (formInstance.evented) {
+        if (formInstance.formElementsEvented) {
             this.parseConfig();
             this.parsed = true;
             this.addFormEvents(this.config);
@@ -132,7 +132,7 @@ var FormValidator = (function () {
     };
 
     Validator.prototype = {
-        // TODO 为每个表单元素添加事件侦听
+        // 为每个表单元素添加事件侦听
         addFormEvents: function (cfg) {
             var me = this;
             var elem, formType, item;
@@ -200,53 +200,54 @@ var FormValidator = (function () {
                     me.handleError();
 
                     me.emit('failure', [e]);
-                } else {
-                    // ajax提交默认阻止表单提交
-                    if (me.ajax) {
-                        e._preventDefault();
-                    }
+                    return;
+                }
 
-                    var def;
-                    var form = this;
+                // ajax提交默认阻止表单提交
+                if (me.ajax) {
+                    e._preventDefault();
+                }
 
-                    /*
-                    执行me.beforeSend方法，在成功，提交之前执行，
-                    如果返回false就触发失败回调
-                    可以返回deferred对象，进行异步操作
-                    */
-                    if (me.beforeSend && (def = me.beforeSend()) === false) {
-                        K.handyWarn({
-                            msg: me.beforeSend.errorMsg
-                        });
+                var def;
+                var form = this;
 
-                        me.emit('failure', [e]);
-                        return;
-                    }
+                /*
+                执行me.beforeSend方法，在成功，提交之前执行，
+                如果返回false就触发失败回调
+                可以返回deferred对象，进行异步操作
+                */
+                if (me.beforeSend && (def = me.beforeSend()) === false) {
+                    K.handyWarn({
+                        msg: me.beforeSend.errorMsg
+                    });
 
-                    // 如果是deferred对象，序列执行回调
-                    if (def && (def = (def.pipe || def.then))) {
-                        // 因为是异步操作，必须阻止默认表单提交，与异步提交表单不同
-                        if(!e.isDefaultPrevented()) e._preventDefault();
+                    me.emit('failure', [e]);
+                    return;
+                }
 
-                        return def(function () {
-                            me.isDefaultPrevented = false;
-                            me.emit('success', [e]);
-                            // 提交表单
-                            if(!me.isDefaultPrevented && !me.ajax) form.submit();
-                        }, function(){
-                            me.emit('failure', [e]);
-                        });
-                    } else {
+                // 如果是deferred对象，序列执行回调
+                if (def && (def = (def.pipe || def.then))) {
+                    // 因为是异步操作，必须阻止默认表单提交，与异步提交表单不同
+                    if(!e.isDefaultPrevented()) e._preventDefault();
+
+                    return def(function () {
+                        me.isDefaultPrevented = false;
                         me.emit('success', [e]);
-                    }
+                        // 提交表单
+                        if(!me.isDefaultPrevented && !me.ajax) form.submit();
+                    }, function(){
+                        me.emit('failure', [e]);
+                    });
+                } else {
+                    me.emit('success', [e]);
                 }
             });
         },
         validate: function () {
-            /*
+            /**
              [{
-             elem: elem,
-             msg: ''
+                elem: elem,
+                msg: ''
              }, ...]
              */
             this.errHandler = [];
@@ -299,6 +300,8 @@ var FormValidator = (function () {
                 } else {
                     elem.focus();
                 }
+
+                elem = null;
             }
         }
     };
@@ -324,7 +327,7 @@ var FormValidator = (function () {
                 value = Validator.encodeValue(value);
             }
 
-            args = description ? [value, description] : [value];
+            args = [value].concat(description);
 
             if (!checker.validate.apply(elem, args)) {
                 errHandler.push({
@@ -333,7 +336,11 @@ var FormValidator = (function () {
                 });
             }
         }
+
+        checkers = checker = elem = null;
     }
+
+    var r_brackets = /^([\w-]+)(?:\(([^)]+)\)|)$/;
 
     function parseEachEleCfg(item){
         if (!(item.checker && item.checker.length)) {
@@ -343,13 +350,18 @@ var FormValidator = (function () {
             if (!types.length) return false;
 
             // 单个元素可以有多个checker，以空格分隔，且单个checker可有相应的描述语
-            // “charLen:24”， “：”后面跟随描述语，
+            // “charLen(24)”， 括号里面是描述语，
             // 描述语用在错误信息中
             item.checker = [];
             for (var i = 0, len = types.length; i < len; i++) {
-                type = types[i].split(':');
-                description = type[1];
-                checker = VALIDTYPES[type[0]];
+//                type = types[i].split(':');
+//                description = type[1];
+//                checker = VALIDTYPES[type[0]];
+
+                type = types[i].match(r_brackets);
+                if(!type) continue;
+                checker = VALIDTYPES[type[1]];
+                description = type[2] && type[2].split(',') || [];
 
                 if (!checker) {
                     __console.error('没有相应的验证规则:' + type);
@@ -358,7 +370,7 @@ var FormValidator = (function () {
 
                 item.checker.push({
                     checker: checker,
-                    description: description || ''
+                    description: description
                 });
             }
         }
@@ -368,4 +380,3 @@ var FormValidator = (function () {
 
     return Validator;
 }());
-
