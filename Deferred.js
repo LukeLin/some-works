@@ -11,13 +11,23 @@ define(function(){
         var me = this;
 
         for(var i = 0, len = this.list.length; i < len; i++) {
-            (function(i){
-                me.list[i].unshift(function(){
-                    me.state = tuples[i][2];
-                    me.list[i ^ 1] = me.list[2] = undefined;
-//                    this[i ^ 1] = this[2] = undefined;
+//            (function(i){
+//                me.list[i].unshift(function(){
+//                    me.state = tuples[i][2];
+//                    me.list[i ^ 1] = me.list[2] = undefined;
+//                });
+//            }(i));
+
+            with({
+                i: i,
+                list: this.list,
+                state: this.state
+            }){
+                list[i].unshift(function(){
+                    state = tuples[i][2];
+                    list[i ^ 1] = list[2] = undefined;
                 });
-            }(i));
+            }
         }
     };
 
