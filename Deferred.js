@@ -13,8 +13,9 @@ define(function(){
         for(var i = 0, len = this.list.length; i < len; i++) {
             (function(i){
                 me.list[i].unshift(function(){
-                    this.state = tuples[i][2];
-                    this.list[i ^ 1] = this.list[2] = undefined;
+                    me.state = tuples[i][2];
+                    me.list[i ^ 1] = me.list[2] = undefined;
+//                    this[i ^ 1] = this[2] = undefined;
                 });
             }(i));
         }
@@ -131,7 +132,7 @@ define(function(){
                 this.fired = true;
                 this.firing = true;
                 for(var i = 0, len = list.length; i < len; i++) {
-                    if(list[i].apply(this.memory[0], this.memory[1]) === false) {
+                    if(list[i].apply(context, args) === false) {
                         this.memory = false;
                         break;
                     }
@@ -140,7 +141,25 @@ define(function(){
 
                 list = [];
             }
+
+            return this;
         };
+    }
+
+    function forEach(o, cb){
+        var oToString = Object.prototype.toString;
+        var i, len;
+        if(oToString.call(o) === '[object Array]') {
+            for(i = 0, len = o.length; i < len; i++) {
+                if(cb.call(o[i], o[i], i) === false) break;
+            }
+        } else if(oToString.call(o) === '[object Object]') {
+            for(i in o){
+                if(!o.hasOwnProperty(i)) continue;
+
+                if(cb.call(o[i], o[i], i) === false) break;
+            }
+        }
     }
 
     return {
@@ -148,112 +167,108 @@ define(function(){
             return new Deferred(fn);
         },
         // TODO
-        when: when
+        when: function(subordinate /* , ... subordinateN */){
+            var i = 0;
+            var resolveValues = [].slice.call(arguments);
+            var length = resolveValues.length;
+            var remaining = length !== 1 || (subordinate && typeof subordinate.promise === 'function') ? length : 0;
+            var deferred = remaining === 1 ? subordinate : new Deferred();
+            var updateFunc = function(i, contexts, values){
+                return function(value){
+                    contexts[i] = this;
+                    values[i] = arguments.length > 1 ?[].call(arguments) : value;
+                    if(value === progressValues){
+                        deferred.notifyWith(contexts, values);
+                    } else if(!(--remaining)) {
+                        deferred.resolveWith(contexts, values);
+                    }
+                };
+            };
+            var progressValues, progressContexts, resolveContexts;
+
+            if(length > 1) {
+                progressValues = new Array(length);
+                progressContexts = new Array(length);
+                resolveContexts = new Array(length);
+                for(; i < length; i++) {
+                    if(resolveValues[i] && typeof resolveValues[i].promise === 'function') {
+                        resolveValues[i].promise()
+                            .done(updateFunc(i, resolveContexts, resolveValues))
+                            .fail(deferred.reject)
+                            .progress(updateFunc(i, progressContexts, progressValues));
+                    } else {
+                        --remaining;
+                    }
+                }
+            }
+
+            if(!remaining) {
+                deferred.resolveWith(resolveContexts, resolveValues);
+            }
+
+            return deferred.promise();
+        },
+        all: function(promises){
+            var deferred = new Deferred();
+            var counter = 0;
+            var isArray = Object.prototype.toString.call(promises)=== ['object Array'];
+            var results =  isArray ? [] : {};
+            if(!isArray) {
+                promises = [].slice.call(arguments);
+            }
+
+            forEach(promises, function(promise, key){
+                counter++;
+                if(typeof promise.promise !== 'function') {
+                    var def = new Deferred();
+                    promise = def.promise(promise);
+                    setTimeout(function(){
+                        def.resolve(promise);
+                    });
+                }
+
+                promise.then(function(value){
+                    if(results.hasOwnProperty(key)) return;
+                    results[key] = value;
+                    if(!(--counter)) deferred.resolve(results);
+                }, function(){
+                    if(results.hasOwnProperty(key)) return;
+                    deferred.reject();
+                });
+            });
+
+            if(counter === 0) deferred.resolve(results);
+
+            return deferred.promise();
+        },
+        any: function(promises){
+            var deferred = new Deferred();
+            var done;
+            var isArray = Object.prototype.toString.call(promises)=== ['object Array'];
+            if(!isArray) {
+                promises = [].slice.call(arguments);
+            }
+
+            forEach(promises, function(promise, key){
+                if(typeof promise.promise !== 'function') {
+                    var def = new Deferred();
+                    promise = def.promise(promise);
+                    setTimeout(function(){
+                        def.resolve(promise);
+                    });
+                }
+
+                promise.then(function(value){
+                    if(done) return;
+                    done = true;
+                    deferred.resolve();
+                }, function(){
+                    if(done) return;
+                    deferred.reject();
+                });
+            });
+
+            return deferred.promise();
+        }
     };
 });
-
-
-
-// test:
-require([
-        //'callbacks',
-        'deferred',
-        //'jquery'
-    ], function (/*Callbacks, */Deferred/*, $*/) {
-        var start, end;
-        start = (new Date()).getTime();
-        var a = Deferred.create();
-        a.done(function () {
-            console.log('done!');
-            console.log(this);
-        })
-                .fail(function () {
-                    console.log('failed');
-                })
-                .always(function () {
-                    console.log('always');
-                })
-                .then(function () {
-                    console.log(arguments);
-                    console.log('then done');
-                }, function () {
-                    console.log('then failed');
-                })
-                .then(function () {
-                    var def = Deferred.create();
-                    def.then(function () {
-                        console.log('a returned def done');
-                    }, function () {
-                        console.log('a returned def failed');
-                    });
-
-                    setTimeout(function () {
-                        def.resolve();
-                    }, 511);
-                    return def;
-                }, function () {
-                    var def = Deferred.create();
-                    def.then(function () {
-                        console.log('a returned def done');
-                    }, function () {
-                        console.log('a returned def failed');
-                    });
-
-                    setTimeout(function () {
-                        def.reject();
-                    }, 511);
-                    return def;
-                });
-        end = (new Date()).getTime();
-        console.log(end - start + 'ms');
-
-        var b = Deferred.create();
-        b.done(function () {
-            console.log('b done');
-        })
-                .fail(function () {
-                    console.log('b failed');
-                })
-                .then(function () {
-                    console.log('b then done');
-                }, function () {
-                    console.log('b then failed');
-                })
-                .then(function () {
-                    var def = new Deferred();
-                    def.then(function () {
-                        console.log('b returned def done');
-                    }, function () {
-                        console.log('b returned def failed');
-                    });
-
-                    setTimeout(function () {
-                        def.resolve();
-                    }, 511);
-                    return def;
-                }, function () {
-                    var def = Deferred.create();
-                    def.then(function () {
-                        console.log('b returned def done');
-                    }, function () {
-                        console.log('b returned def failed');
-                    });
-
-                    setTimeout(function () {
-                        def.reject();
-                    }, 511);
-                    return def;
-                });
-
-        setTimeout(function () {
-            a.resolve({
-                data: 123
-            });
-            console.log(a);
-        });
-
-        setTimeout(function () {
-            b.reject();
-            console.log(b);
-        });
-    });
