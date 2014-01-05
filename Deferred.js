@@ -8,7 +8,6 @@ define(function(){
     var Promise = function(){
         this.state = 'pending';
         this.list = [[], [], []];
-        var me = this;
 
         for(var i = 0, len = this.list.length; i < len; i++) {
 //            (function(i){
