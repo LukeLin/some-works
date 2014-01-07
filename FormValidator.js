@@ -337,7 +337,7 @@ S.c.TeamValidator = (function () {
             }
         }
 
-        checkers = checker = elem = null;
+        elem = null;
     }
 
     var r_brackets = /^([\w-]+)(?:\(([^)]+)\)|)$/;
