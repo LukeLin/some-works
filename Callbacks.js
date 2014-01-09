@@ -37,7 +37,7 @@ define(function(){
                 firingLength = this.list.length;
             } else if(this.memory) {
                 firingStart = start;
-                fire(this.memory);
+                fire(this, this.memory);
             }
 
             return this;
@@ -51,7 +51,7 @@ define(function(){
                 if(firing) {
                     this.stack.push(args);
                 } else {
-                    fire(args);
+                    fire(this, args);
                 }
             }
 
@@ -88,32 +88,31 @@ define(function(){
             return this;
         };
 
-        var self = this;
-        function fire(data){
-            self.memory = options.memory && data;
+        function fire(context, data){
+            context.memory = options.memory && data;
             fired = true;
             firingIndex = firingStart || 0;
             firingStart = 0;
-            firingLength = self.list.length;
+            firingLength = context.list.length;
 
             firing = true;
 
-            for(; self.list && firingIndex < firingLength; firingIndex++) {
-                if(self.list[firingIndex].apply(data[0], data[1]) === false && options.stopOnFalse) {
-                    self.memory = false;
+            for(; context.list && firingIndex < firingLength; firingIndex++) {
+                if(context.list[firingIndex].apply(data[0], data[1]) === false && options.stopOnFalse) {
+                    context.memory = false;
                     break;
                 }
             }
 
             firing = false;
 
-            if(self.list) {
-                if(self.stack){
-                    if(self.stack.length) {
-                        fire(self.stack.shift());
+            if(context.list) {
+                if(context.stack){
+                    if(context.stack.length) {
+                        fire(context.stack.shift());
                     }
                 } else if(self.memory) {
-                    self.list = [];
+                    context.list = [];
                 } else {
                     this.disable();
                 }
