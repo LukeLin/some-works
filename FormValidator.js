@@ -118,6 +118,12 @@ S.c.TeamValidator = (function () {
             this.addFormEvents(this.config);
         }
 
+        var removeClassFn = function(e){
+            $(e.target).removeClass('processing');
+        };
+        this.on('success', removeClassFn);
+        this.on('failure', removeClassFn);
+
         this.submit();
     }
 
@@ -157,6 +163,11 @@ S.c.TeamValidator = (function () {
                     cb : [cb]
             );
         },
+        off: function(type){
+            if(!this.callbackLists[type]) return;
+
+            delete this.callbackLists[type];
+        },
         emit: function(type, args){
             if(!this.callbackLists[type]) {
                 throw new Error('no matched event type');
@@ -179,6 +190,12 @@ S.c.TeamValidator = (function () {
             if (!this.form) return;
 
             $(this.form).on('submit', function (e) {
+                var $this = $(this);
+
+                if($this.hasClass('processing')) return;
+
+                $this.addClass('processing');
+
                 me.isDefaultPrevented = false;
                 e._preventDefault = e.preventDefault;
                 e.preventDefault = function(){
@@ -226,7 +243,8 @@ S.c.TeamValidator = (function () {
                 }
 
                 // 如果是deferred对象，序列执行回调
-                if (def && (def = (def.pipe || def.then))) {
+                if(def && (typeof def.pipe === 'function' || typeof def.then === 'function')) {
+                    def = def.pipe || def.then;
                     // 因为是异步操作，必须阻止默认表单提交，与异步提交表单不同
                     if(!e.isDefaultPrevented()) e._preventDefault();
 
@@ -262,8 +280,6 @@ S.c.TeamValidator = (function () {
 
                 validating(item, this.errHandler);
             }
-
-            item =  null;
         },
         // 解析HTML标签中的“data-valid”属性，将有的保存
         parseConfig: function () {
