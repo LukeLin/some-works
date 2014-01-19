@@ -118,9 +118,6 @@ S.c.TeamValidator = (function () {
             this.addFormEvents(this.config);
         }
 
-        var removeClassFn = function(e){
-            $(e.target).removeClass('processing');
-        };
         this.on('success', removeClassFn);
         this.on('failure', removeClassFn);
 
@@ -320,6 +317,10 @@ S.c.TeamValidator = (function () {
                 elem = null;
             }
         }
+    };
+
+    function removeClassFn(e){
+        $(e.target).removeClass('processing');
     };
 
     // 验证值，如果不符则保存到错误队列中
