@@ -109,6 +109,7 @@ let formHooks = {
 
 let formEventsHooks = {
     'text': formEventsGetter('blur'),
+    'password': formEventsGetter('blur'),
     'textarea': formEventsGetter('blur'),
     'checkbox': formEventsGetter('click'),
     'select': formEventsGetter('change'),
@@ -117,20 +118,28 @@ let formEventsHooks = {
 
 function formEventsGetter(type) {
     return (el, context, item) => {
-        $(el).on(type, () => {
+        var $el = $(el);
+        $el.on(type, () => {
             context.errHandler = [];
             parseEachEleCfg(item);
 
             validating(item, context.errHandler);
 
-            if (context.errHandler.length) context.handleError();
-            else $(el).siblings('.error-msg').remove();
+            if (context.errHandler.length)
+                context.handleError();
+            else
+                $el.removeClass('valid-error').siblings('.error-msg').hide()
+
         });
     };
 }
 
 function showErrMsg(obj) {
     let $elem = $(obj.elem);
+
+    if($elem.hasClass('valid-error')) return;
+    $elem.addClass('valid-error');
+
     let msg = obj.msg;
     let $errElem = $elem.siblings('.error-msg');
 
@@ -138,7 +147,17 @@ function showErrMsg(obj) {
         $errElem = $('<i class="error-msg">' + msg + '</i>');
         $errElem.insertAfter($elem);
     } else {
-        $errElem.text(msg);
+        $errElem.text(msg).show();
+    }
+}
+
+function clearErrs(arrs){
+    for(let i = 0; i < arrs.length; ++i){
+        let $elem = $(arrs[i].elem);
+        let $errElem = $elem.siblings('.error-msg');
+
+        if($elem.hasClass('valid-error')) $elem.removeClass('valid-error');
+        $errElem.hide();
     }
 }
 
@@ -173,7 +192,7 @@ export class Validator {
          this.errHandler;
          */
 
-        if (formInstance.types) $.extend({}, VALIDTYPES, formInstance.types || {});
+        if (formInstance.types) $.extend(VALIDTYPES, formInstance.types || {});
 
         this.parsed = false;
         this.isDefaultPrevented = false;
@@ -254,12 +273,12 @@ export class Validator {
 
         if (!this.form) return;
 
-        $(this.form).on('submit', (e) => {
-            let $this = $(e.currentTarget);
+        let $form = $(this.form);
+        $form.on('submit', (e) => {
 
-            if ($this.hasClass('processing')) return;
+            if ($form.hasClass('processing')) return;
 
-            $this.addClass('processing');
+            $form.addClass('processing');
 
             me.isDefaultPrevented = false;
             e._preventDefault = e.preventDefault;
@@ -274,7 +293,7 @@ export class Validator {
                 me.parsed = true;
             }
 
-            $('.error-msg').remove();
+            clearErrs(this.config);
 
             // 验证
             me.validate();
@@ -291,7 +310,6 @@ export class Validator {
             if (me.ajax) e._preventDefault();
 
             let def;
-            let form = this;
 
             /*
             执行me.beforeSend方法，在成功，提交之前执行，
@@ -313,7 +331,7 @@ export class Validator {
                     me.isDefaultPrevented = false;
                     me.emit('success', [e]);
                     // 提交表单
-                    if (!me.isDefaultPrevented && !me.ajax) form.submit();
+                    if (!me.isDefaultPrevented && !me.ajax) $form.submit();
                 }, () => {
                     me.emit('failure', [e]);
                 });
@@ -345,11 +363,10 @@ export class Validator {
     // 解析HTML标签中的“data-valid”属性，将有的保存
     parseConfig () {
         let elems = $('*[data-valid]:not([disabled]):not([readonly])', this.form);
-        let elem, ruler;
 
         for (let i = 0, len = elems.length; i < len; i++) {
-            elem = elems[i];
-            ruler = elem.getAttribute('data-valid');
+            let elem = elems[i];
+            let ruler = elem.getAttribute('data-valid');
 
             if (ruler)
                 this.config.push({
@@ -381,7 +398,9 @@ export class Validator {
                     elem: elem
                 });
 
-                if (!$(elem).siblings('.error-msg').length)
+                let $elems = $(elem);
+
+                if (!$elems.hasClass('valid-error'))
                     if (elem.value) elem.select();
                     else elem.focus();
 
@@ -423,6 +442,7 @@ function validating(item, errHandler) {
                 elem: elem,
                 msg: typeof checker.msg === 'function' ? checker.msg.apply(elem, args) : checker.msg
             });
+        else $(elem).removeClass('valid-error');
     }
 }
 
