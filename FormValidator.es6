@@ -327,9 +327,9 @@ export class Validator {
                 // 因为是异步操作，必须阻止默认表单提交，与异步提交表单不同
                 if (!e.isDefaultPrevented()) e._preventDefault();
 
-                return def(() => {
+                return def((...args) => {
                     me.isDefaultPrevented = false;
-                    me.emit('success', [e]);
+                    me.emit('success', [e, ...args]);
                     // 提交表单
                     if (!me.isDefaultPrevented && !me.ajax) $form.submit();
                 }, () => {
@@ -447,6 +447,7 @@ function validating(item, errHandler) {
 }
 
 let r_brackets = /^([\w-]+)(?:\(([^)]+)\)|)$/;
+var r_digital = /^(?:\d*\.?)\d+$/;
 
 function parseEachEleCfg(item) {
     if (!(item.checker && item.checker.length)) {
@@ -464,6 +465,7 @@ function parseEachEleCfg(item) {
             if (!type) continue;
             checker = VALIDTYPES[type[1]];
             description = type[2] && type[2].split(',') || [];
+            if(r_digital.test(description)) description = +description;
 
             if (!checker) {
                 console.error('没有相应的验证规则:' + type);
