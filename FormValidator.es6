@@ -10,29 +10,29 @@
  * jade:
  *
  *  form
-        h2.title 手机验证
-        fieldset
-            ul.reg-info
-                li
-                     span 手机号
-                     input#mobile(name='mobile', type='text', data-valid="nonEmpty phone")
-                li
-                     span 验证码
-                     input#validCode(name='validCode', type='text', data-valid="nonEmpty")
-                     a.get-valid-code 获取短信验证码
+ h2.title 手机验证
+ fieldset
+ ul.reg-info
+ li
+ span 手机号
+ input#mobile(name='mobile', type='text', data-valid="nonEmpty phone")
+ li
+ span 验证码
+ input#validCode(name='validCode', type='text', data-valid="nonEmpty")
+ a.get-valid-code 获取短信验证码
 
-         input(type="submit", value="下一步")
+ input(type="submit", value="下一步")
  *
  *
  * js:
 
-    new Validator({
+ new Validator({
         form: $('#register1-form'),
         formElementsEvented: true,
         beforeSend() {
             let def = $.Deferred();
-            var mobile = $('#mobile').val();
-            var validCode = $('#validCode').val();
+            let mobile = $('#mobile').val();
+            let validCode = $('#validCode').val();
 
             $.ajax({
                 url: '/validUser',
@@ -66,10 +66,10 @@
  * @constructor Validator
  */
 
-var r_space = /\s+/;
+let r_space = /\s+/;
 
 // HTML转义
-var ENCODECHAR = {
+let ENCODECHAR = {
     '<': '&lt;',
     '>': '&gt;',
     '&': '&amp;',
@@ -77,37 +77,37 @@ var ENCODECHAR = {
 };
 
 // 验证策略
-var VALIDTYPES = {
+let VALIDTYPES = {
     'nonEmpty': {
-        validate: function (value) {
+        validate (value) {
             return value !== '';
         },
         msg: '此项不能为空'
     },
     'email': {
-        validate: function (value) {
+        validate (value) {
             return (/^[\w\-]+@[\w\-]+(?:\.[\w\-]+)+$/.test(value));
         },
-        msg: function (value) {
+        msg (value) {
             return (value ? '请输入正确格式的邮箱' : '请输入你的邮箱');
         }
     },
     'phone': {
-        validate: function (value) {
+        validate (value) {
             return (/^1[3458]\d{9}$/.test(value));
         },
-        msg: function (value) {
+        msg (value) {
             return (value ? '请输入正确格式的手机号码' : '请输入你的手机号码');
         }
     }
 };
 
-var formHooks = {
+let formHooks = {
     'radio': 'checked',
     'checkbox': 'checked'
 };
 
-var formEventsHooks = {
+let formEventsHooks = {
     'text': formEventsGetter('blur'),
     'textarea': formEventsGetter('blur'),
     'checkbox': formEventsGetter('click'),
@@ -116,8 +116,8 @@ var formEventsHooks = {
 };
 
 function formEventsGetter(type) {
-    return function (el, context, item) {
-        $(el).on(type, function () {
+    return (el, context, item) => {
+        $(el).on(type, () => {
             context.errHandler = [];
             parseEachEleCfg(item);
 
@@ -130,9 +130,9 @@ function formEventsGetter(type) {
 }
 
 function showErrMsg(obj) {
-    var $elem = $(obj.elem);
-    var msg = obj.msg;
-    var $errElem = $elem.siblings('.error-msg');
+    let $elem = $(obj.elem);
+    let msg = obj.msg;
+    let $errElem = $elem.siblings('.error-msg');
 
     if (!$errElem.length) {
         $errElem = $('<i class="error-msg">' + msg + '</i>');
@@ -147,120 +147,115 @@ function showErrMsg(obj) {
  * @param {Object} formInstance 用户自定义规则
  * @constructor
  */
-function Validator(formInstance) {
-    var form = formInstance.form;
-    if (!form) return;
+export class Validator {
+    constructor(formInstance) {
+        let form = formInstance.form;
+        if (!form) return;
 
-    this.form = form;
+        this.form = form;
 
-    /**
-     [{
+        /**
+         [{
             elem:elem,
             value: '',
             type: ''
             [optional] ,checker: {checker: func, description: ''}
          }, ..]
-     */
-    this.config = [];
+         */
+        this.config = [];
 
-    this.callbackLists = {
-        success: [],
-        failure: []
-    };
+        this.callbackLists = {
+            success: [],
+            failure: []
+        };
 
-    /*
-     this.errHandler;
-     */
+        /*
+         this.errHandler;
+         */
 
-    if (formInstance.types) $.extend({}, VALIDTYPES, formInstance.types || {});
+        if (formInstance.types) $.extend({}, VALIDTYPES, formInstance.types || {});
 
-    this.parsed = false;
-    this.isDefaultPrevented = false;
-    this.ajax = typeof formInstance.ajax === 'boolean' ?
-        formInstance.ajax : true;
-    // 错误信息提示
-    this.showErrMsg = formInstance.showErrMsg || showErrMsg;
+        this.parsed = false;
+        this.isDefaultPrevented = false;
+        this.ajax = typeof formInstance.ajax === 'boolean' ?
+            formInstance.ajax : true;
+        // 错误信息提示
+        this.showErrMsg = formInstance.showErrMsg || showErrMsg;
 
-    if (formInstance.success) this.on('success', formInstance.success);
-    if (formInstance.failure) this.on('failure', formInstance.failure);
-    if (formInstance.beforeSend) this.beforeSend = formInstance.beforeSend;
+        if (formInstance.success) this.on('success', formInstance.success);
+        if (formInstance.failure) this.on('failure', formInstance.failure);
+        if (formInstance.beforeSend) this.beforeSend = formInstance.beforeSend;
 
-    if (formInstance.formElementsEvented) {
-        this.parseConfig();
-        this.parsed = true;
-        this.addFormEvents(this.config);
+        if (formInstance.formElementsEvented) {
+            this.parseConfig();
+            this.parsed = true;
+            this.addFormEvents(this.config);
+        }
+
+        this.on('success', removeClassFn);
+        this.on('failure', removeClassFn);
+
+        this.submit();
     }
 
-    this.on('success', removeClassFn);
-    this.on('failure', removeClassFn);
+    static encodeValue(value) {
+        for (let i in ENCODECHAR)
+            if (ENCODECHAR.hasOwnProperty(i))
+                value = value.replace(new RegExp(i, 'g'), ENCODECHAR[i]);
 
-    this.submit();
-}
-
-// 防止XSS
-Validator.encodeValue = function (value) {
-    for (var i in ENCODECHAR) {
-        if (ENCODECHAR.hasOwnProperty(i))
-            value = value.replace(new RegExp(i, 'g'), ENCODECHAR[i]);
+        return value;
     }
 
-    return value;
-};
-
-Validator.prototype = {
     // 为每个表单元素添加事件侦听
-    addFormEvents: function (cfg) {
-        var me = this;
-        var elem, formType, item;
-        for (var i = 0, len = cfg.length; i < len; i++) {
+    addFormEvents (cfg) {
+        let me = this;
+        let elem, formType, item;
+        for (let i = 0, len = cfg.length; i < len; i++) {
             item = cfg[i];
             elem = item.elem;
             formType = elem.type;
 
             formEventsHooks[formType](elem, me, item);
         }
-    },
-    hasErrors: function () {
+    }
+    hasErrors () {
         return !!this.errHandler.length;
-    },
-    on: function (type, cb) {
-        if (!this.callbackLists[type]) {
+    }
+    on (type, cb) {
+        if (!this.callbackLists[type])
             throw new Error('no matched event type');
-        }
 
         this.callbackLists[type] = this.callbackLists[type].concat(
             Object.prototype.toString.call(cb) === '[object Array]' ?
                 cb : [cb]
         );
-    },
-    off: function (type) {
+    }
+    off (type) {
         if (!this.callbackLists[type]) return;
 
         delete this.callbackLists[type];
-    },
-    emit: function (type, args) {
-        if (!this.callbackLists[type]) {
+    }
+    emit (type, args) {
+        if (!this.callbackLists[type])
             throw new Error('no matched event type');
-        }
 
-        var list = this.callbackLists[type];
+        let list = this.callbackLists[type];
 
-        if (type === 'failure' && args && args[0] && args[0].preventDefault) {
+        if (type === 'failure' && args && args[0] && args[0].preventDefault)
             args[0].preventDefault();
-        }
 
-        for (var i = 0, len = list.length; i < len; i++) {
+        for (let i = 0, len = list.length; i < len; i++) {
             if (typeof list[i] === 'function' && list[i].apply(this.form, args) === false)
                 break;
         }
-    },
-    submit: function () {
-        var me = this;
+    }
+    submit () {
+        let me = this;
 
         if (!this.form) return;
 
-        $(this.form).on('submit', function (e) {
-            var $this = $(this);
+        $(this.form).on('submit', (e) => {
+            let $this = $(e.currentTarget);
 
             if ($this.hasClass('processing')) return;
 
@@ -268,7 +263,7 @@ Validator.prototype = {
 
             me.isDefaultPrevented = false;
             e._preventDefault = e.preventDefault;
-            e.preventDefault = function () {
+            e.preventDefault = () => {
                 e._preventDefault();
                 me.isDefaultPrevented = true;
             };
@@ -293,12 +288,10 @@ Validator.prototype = {
             }
 
             // ajax提交默认阻止表单提交
-            if (me.ajax) {
-                e._preventDefault();
-            }
+            if (me.ajax) e._preventDefault();
 
-            var def;
-            var form = this;
+            let def;
+            let form = this;
 
             /*
             执行me.beforeSend方法，在成功，提交之前执行，
@@ -316,20 +309,20 @@ Validator.prototype = {
                 // 因为是异步操作，必须阻止默认表单提交，与异步提交表单不同
                 if (!e.isDefaultPrevented()) e._preventDefault();
 
-                return def(function () {
+                return def(() => {
                     me.isDefaultPrevented = false;
                     me.emit('success', [e]);
                     // 提交表单
                     if (!me.isDefaultPrevented && !me.ajax) form.submit();
-                }, function () {
+                }, () => {
                     me.emit('failure', [e]);
                 });
             } else {
                 me.emit('success', [e]);
             }
         });
-    },
-    validate: function () {
+    }
+    validate () {
         /**
          [{
                 elem: elem,
@@ -338,23 +331,23 @@ Validator.prototype = {
          */
         this.errHandler = [];
 
-        var item;
+        let item;
 
         // 遍历配置项
-        for (var i = 0, len = this.config.length; i < len; i++) {
+        for (let i = 0, len = this.config.length; i < len; i++) {
             item = this.config[i];
 
             if (parseEachEleCfg(item) === false) continue;
 
             validating(item, this.errHandler);
         }
-    },
+    }
     // 解析HTML标签中的“data-valid”属性，将有的保存
-    parseConfig: function () {
-        var elems = $('*[data-valid]:not([disabled]):not([readonly])', this.form);
-        var elem, ruler;
+    parseConfig () {
+        let elems = $('*[data-valid]:not([disabled]):not([readonly])', this.form);
+        let elem, ruler;
 
-        for (var i = 0, len = elems.length; i < len; i++) {
+        for (let i = 0, len = elems.length; i < len; i++) {
             elem = elems[i];
             ruler = elem.getAttribute('data-valid');
 
@@ -364,14 +357,14 @@ Validator.prototype = {
                     type: ruler
                 });
         }
-    },
+    }
     // 处理错误
-    handleError: function (showAll) {
-        var errs = this.errHandler;
+    handleError (showAll) {
+        let errs = this.errHandler;
 
         if (errs.length) {
-            var head = errs.shift();
-            var elem = head.elem;
+            let head = errs.shift();
+            let elem = head.elem;
 
             if (showAll) {
                 do {
@@ -388,16 +381,16 @@ Validator.prototype = {
                     elem: elem
                 });
 
-                if (!$(elem).siblings('.error-msg').length) {
+                if (!$(elem).siblings('.error-msg').length)
                     if (elem.value) elem.select();
                     else elem.focus();
-                }
 
                 elem = null;
             }
         }
     }
-};
+}
+
 
 function removeClassFn(e) {
     $(e.target).removeClass('processing');
@@ -405,10 +398,10 @@ function removeClassFn(e) {
 
 // 验证值，如果不符则保存到错误队列中
 function validating(item, errHandler) {
-    var checkers = item.checker;
-    var description, checker, value, args, elem;
+    let checkers = item.checker;
+    let description, checker, value, args, elem;
 
-    for (var i = 0, len = checkers.length; i < len; i++) {
+    for (let i = 0, len = checkers.length; i < len; i++) {
         checker = checkers[i].checker;
         description = checkers[i].description;
         elem = item.elem;
@@ -416,9 +409,8 @@ function validating(item, errHandler) {
         value = elem[formHooks[elem.type.toLowerCase()] || 'value'];
 
         // fix IE用value兼容HTML5的placeholder
-        if (elem.getAttribute('placeholder') === value) {
+        if (elem.getAttribute('placeholder') === value)
             value = '';
-        }
 
         //if (value && typeof value === 'string') {
         //    value = Validator.encodeValue(value);
@@ -426,21 +418,20 @@ function validating(item, errHandler) {
 
         args = [value].concat(description);
 
-        if (!checker.validate.apply(elem, args)) {
+        if (!checker.validate.apply(elem, args))
             errHandler.push({
                 elem: elem,
                 msg: typeof checker.msg === 'function' ? checker.msg.apply(elem, args) : checker.msg
             });
-        }
     }
 }
 
-var r_brackets = /^([\w-]+)(?:\(([^)]+)\)|)$/;
+let r_brackets = /^([\w-]+)(?:\(([^)]+)\)|)$/;
 
 function parseEachEleCfg(item) {
     if (!(item.checker && item.checker.length)) {
-        var type, description, checker;
-        var types = item.type && item.type.split(r_space) || [];
+        let type, description, checker;
+        let types = item.type && item.type.split(r_space) || [];
 
         if (!types.length) return false;
 
@@ -448,7 +439,7 @@ function parseEachEleCfg(item) {
         // “charLen(24)”， 括号里面是描述语，
         // 描述语用在错误信息中
         item.checker = [];
-        for (var i = 0, len = types.length; i < len; i++) {
+        for (let i = 0, len = types.length; i < len; i++) {
             type = types[i].match(r_brackets);
             if (!type) continue;
             checker = VALIDTYPES[type[1]];
@@ -468,5 +459,3 @@ function parseEachEleCfg(item) {
 
     return true;
 }
-
-exports.Validator = Validator;
