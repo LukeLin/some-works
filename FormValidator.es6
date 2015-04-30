@@ -384,7 +384,7 @@ export class Validator {
             let elem = head.elem;
 
             if (showAll) {
-                if (elem.value) elem.select();
+                if (elem.value && elem.type === 'text') elem.select();
                 else elem.focus();
 
                 do {
@@ -404,7 +404,7 @@ export class Validator {
                 let $elems = $(elem);
 
                 if (!$elems.hasClass('valid-error'))
-                    if (elem.value) elem.select();
+                    if (elem.value && elem.type === 'text') elem.select();
                     else elem.focus();
 
                 elem = null;
@@ -415,6 +415,7 @@ export class Validator {
 
 
 function removeClassFn(e) {
+    e.preventDefault();
     $(e.target).removeClass('processing');
 }
 
