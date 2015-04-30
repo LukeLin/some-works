@@ -169,7 +169,7 @@ function clearErrs(arrs){
 export class Validator {
     constructor(formInstance) {
         let form = formInstance.form;
-        if (!form) return;
+        if (!form || (form instanceof jQuery && !form.length)) return;
 
         this.form = form;
 
