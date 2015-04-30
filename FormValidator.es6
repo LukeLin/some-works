@@ -415,7 +415,6 @@ export class Validator {
 
 
 function removeClassFn(e) {
-    e.preventDefault();
     $(e.target).removeClass('processing');
 }
 
