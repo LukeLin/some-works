@@ -1,6 +1,5 @@
 /**
  * User: Luke
- * Date: 13-11-18
  */
 
 /**
@@ -112,7 +111,8 @@ let formEventsHooks = {
     'password': formEventsGetter('blur'),
     'textarea': formEventsGetter('blur'),
     'checkbox': formEventsGetter('click'),
-    'select': formEventsGetter('change'),
+    'select-one': formEventsGetter('change'),
+    'select-multiple': formEventsGetter('change'),
     'radio': formEventsGetter('click')
 };
 
@@ -447,7 +447,7 @@ function validating(item, errHandler) {
 }
 
 let r_brackets = /^([\w-]+)(?:\(([^)]+)\)|)$/;
-var r_digital = /^(?:\d*\.?)\d+$/;
+let r_digital = /^(?:\d*\.?)\d+$/;
 
 function parseEachEleCfg(item) {
     if (!(item.checker && item.checker.length)) {
