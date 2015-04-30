@@ -384,6 +384,9 @@ export class Validator {
             let elem = head.elem;
 
             if (showAll) {
+                if (elem.value) elem.select();
+                else elem.focus();
+
                 do {
                     elem = head.elem;
 
@@ -481,3 +484,13 @@ function parseEachEleCfg(item) {
 
     return true;
 }
+
+
+/*
+如果有问题和疑问，请提issue。
+https://github.com/LukeLin/some-works/blob/master/FormValidator.es6
+
+todos:
+
+1.内置ajax提交功能
+ */
