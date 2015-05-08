@@ -26,8 +26,15 @@
  * js:
 
  new Validator({
+        // 表单
         form: $('#register1-form'),
+        // 是否触发各表单元素的事件，例如输入框失去焦点，选择框发生变化的时候触发表单检验
         formElementsEvented: true,
+        // 自定义错误提示，默认给当前检验的表单元素后面添加错误提示元素（如果已经存在则不添加，使用已存在的）
+        showErrMsg： function(){},
+        // true时表示ajax提交（需手动提交，可在beforeSend()中做提交操作），false则为表单提交
+        ajax: true,
+        // 表单验证成功后就会执行此操作，如果要ajax提交表单（这里要返回一个Promise对象），则可在此操作，如果后端返回成功，则会转到success()操作
         beforeSend() {
             let def = $.Deferred();
             let mobile = $('#mobile').val();
@@ -53,6 +60,34 @@
         },
         success() {
             alert('success');
+        },
+        failure（） {
+            alert('failed');
+        },
+        // 自定义验证规则
+        types: {
+            'nonEmpty': {
+                validate (value) {
+                    return value !== '';
+                },
+                msg: '此项不能为空'
+            },
+            'email': {
+                validate (value) {
+                    return (/^[\w\-]+@[\w\-]+(?:\.[\w\-]+)+$/.test(value));
+                },
+                msg (value) {
+                    return (value ? '请输入正确格式的邮箱' : '请输入你的邮箱');
+                }
+            },
+            'phone': {
+                validate (value) {
+                    return (/^1[3458]\d{9}$/.test(value));
+                },
+                msg (value) {
+                    return (value ? '请输入正确格式的手机号码' : '请输入你的手机号码');
+                }
+            }
         }
     });
 
@@ -213,6 +248,9 @@ export class Validator {
 
         this.on('success', removeClassFn);
         this.on('failure', removeClassFn);
+        this.on('failure', (e) => {
+            e.preventDefault();
+        });
 
         this.submit();
     }
